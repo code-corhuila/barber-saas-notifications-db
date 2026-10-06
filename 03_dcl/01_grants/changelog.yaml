@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: dcl-grants-001
+      author: carlosleal16
+      labels: "HU-NOTIF-001,dcl,grants"
+      comment: "Least privilege: notifications_app (created by the infrastructure in this database) only reads and writes its own collections (Annex J J.7)."
+      changes:
+        - runCommand:
+            command: '{ "grantRolesToUser": "notifications_app", "roles": ["notifications_writer"] }'
+      rollback:
+        - runCommand:
+            command: '{ "revokeRolesFromUser": "notifications_app", "roles": ["notifications_writer"] }'

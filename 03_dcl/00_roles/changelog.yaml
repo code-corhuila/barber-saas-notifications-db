@@ -1,0 +1,26 @@
+# Roles only. The login user notifications_app and its password are created by
+# barber-saas-infra-mongo from a secret (Annex J J.7), never versioned here.
+databaseChangeLog:
+  - changeSet:
+      id: dcl-roles-001
+      author: carlosleal16
+      labels: "HU-NOTIF-001,dcl,roles"
+      comment: "Reader and writer roles scoped to the notifications database; names start with the domain (Annex J J.4)."
+      changes:
+        - runCommand:
+            command: >
+              { "createRole": "notifications_reader",
+                "privileges": [ { "resource": { "db": "notifications", "collection": "" },
+                                  "actions": ["find"] } ],
+                "roles": [] }
+        - runCommand:
+            command: >
+              { "createRole": "notifications_writer",
+                "privileges": [ { "resource": { "db": "notifications", "collection": "" },
+                                  "actions": ["find", "insert", "update", "remove"] } ],
+                "roles": [] }
+      rollback:
+        - runCommand:
+            command: '{ "dropRole": "notifications_writer" }'
+        - runCommand:
+            command: '{ "dropRole": "notifications_reader" }'
