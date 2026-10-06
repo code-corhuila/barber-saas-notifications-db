@@ -1,0 +1,101 @@
+databaseChangeLog:
+  - changeSet:
+      id: ddl-collections-001
+      author: carlosleal16
+      labels: "HU-NOTIF-001,ddl,collections"
+      comment: "In-app notifications (06-data/models.md section 7). The user is referenced by id; the delivery attempts are embedded and bounded."
+      changes:
+        - createCollection:
+            collectionName: notification
+            options: |
+              {
+                "validator": { "$jsonSchema": {
+                  "bsonType": "object",
+                  "required": ["_id", "userId", "title", "body", "type", "read", "createdAt", "updatedAt"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "_id":           { "bsonType": "string", "description": "UUID" },
+                    "userId":        { "bsonType": "string", "description": "UUID of the identity-auth user: referenced, not embedded" },
+                    "barbershopId":  { "bsonType": ["string", "null"], "description": "tenant, when the notification belongs to one" },
+                    "title":         { "bsonType": "string", "minLength": 1, "maxLength": 150 },
+                    "body":          { "bsonType": "string", "minLength": 1, "maxLength": 500 },
+                    "type":          { "enum": ["APPOINTMENT_CONFIRMATION", "REMINDER", "PROMOTION", "SYSTEM"] },
+                    "read":          { "bsonType": "bool" },
+                    "sourceEventId": { "bsonType": ["string", "null"], "description": "the event that produced it; unique when present" },
+                    "deliveryAttempts": { "bsonType": "array", "maxItems": 10, "items": {
+                      "bsonType": "object",
+                      "required": ["channel", "status", "attemptedAt"],
+                      "additionalProperties": false,
+                      "properties": {
+                        "channel":     { "enum": ["PUSH", "EMAIL"] },
+                        "status":      { "enum": ["SENT", "FAILED"] },
+                        "attemptedAt": { "bsonType": "date" },
+                        "errorCode":   { "bsonType": "string" } } } },
+                    "createdAt":     { "bsonType": "date" },
+                    "updatedAt":     { "bsonType": "date" },
+                    "createdBy":     { "bsonType": ["string", "null"], "description": "null when created by an event" }
+                  } } },
+                "validationLevel": "strict",
+                "validationAction": "error"
+              }
+      rollback:
+        - dropCollection:
+            collectionName: notification
+
+  - changeSet:
+      id: ddl-collections-002
+      author: carlosleal16
+      labels: "HU-NOTIF-001,ddl,collections"
+      comment: "FCM device tokens of each user, for push delivery (06-data/models.md section 7)."
+      changes:
+        - createCollection:
+            collectionName: device_token
+            options: |
+              {
+                "validator": { "$jsonSchema": {
+                  "bsonType": "object",
+                  "required": ["_id", "userId", "token", "platform", "createdAt", "updatedAt"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "_id":       { "bsonType": "string", "description": "UUID" },
+                    "userId":    { "bsonType": "string", "description": "UUID of the identity-auth user" },
+                    "token":     { "bsonType": "string", "minLength": 1, "maxLength": 4096 },
+                    "platform":  { "enum": ["ANDROID", "IOS"] },
+                    "createdAt": { "bsonType": "date" },
+                    "updatedAt": { "bsonType": "date" }
+                  } } },
+                "validationLevel": "strict",
+                "validationAction": "error"
+              }
+      rollback:
+        - dropCollection:
+            collectionName: device_token
+
+  - changeSet:
+      id: ddl-collections-003
+      author: carlosleal16
+      labels: "HU-NOTIF-001,ddl,collections"
+      comment: "Idempotency keys of every creating operation (06-data/models.md section 10, norm 5.3.8): the same key with another body is refused."
+      changes:
+        - createCollection:
+            collectionName: idempotency_key
+            options: |
+              {
+                "validator": { "$jsonSchema": {
+                  "bsonType": "object",
+                  "required": ["_id", "key", "operation", "resourceId", "requestHash", "createdAt"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "_id":         { "bsonType": "objectId" },
+                    "key":         { "bsonType": "string", "minLength": 8, "maxLength": 128, "description": "Idempotency-Key header" },
+                    "operation":   { "bsonType": "string", "description": "e.g. POST /api/v1/device-tokens" },
+                    "resourceId":  { "bsonType": "string", "description": "UUID of the resource created with this key" },
+                    "requestHash": { "bsonType": "string" },
+                    "createdAt":   { "bsonType": "date" }
+                  } } },
+                "validationLevel": "strict",
+                "validationAction": "error"
+              }
+      rollback:
+        - dropCollection:
+            collectionName: idempotency_key
