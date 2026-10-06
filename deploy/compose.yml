@@ -1,0 +1,28 @@
+# Only the migration runner of the notifications database (Annex J J.2, J.7, J.8): no database
+# service and no volume. The single MongoDB instance is defined in barber-saas-infra-mongo; this
+# runner applies the pending changesets to it, with its own changelog collections (J.6). It starts
+# only on demand:
+#   docker compose --env-file env/dev.env run --rm notifications-db-migrate     (from barber-saas-infra-postgres)
+services:
+  notifications-db-migrate:
+    build:
+      context: .
+      dockerfile: liquibase.Dockerfile
+    profiles: [tooling]
+    volumes:
+      - ../:/workspace:ro
+    entrypoint: ["liquibase",
+      "--search-path=/workspace",
+      "--changelog-file=changelog/changelog-master.yaml",
+      "--url=mongodb://mongo:27017/notifications?authSource=admin&directConnection=true",
+      "--username=${MONGO_ADMIN_USER:?set MONGO_ADMIN_USER}",
+      "--password=${MONGO_ADMIN_PASSWORD:?set MONGO_ADMIN_PASSWORD}",
+      "--database-changelog-table-name=databasechangelog_notifications",
+      "--database-changelog-lock-table-name=databasechangeloglock_notifications"]
+    command: ["update"]
+    networks: [platform]
+
+networks:
+  platform:
+    name: platform
+    external: true
