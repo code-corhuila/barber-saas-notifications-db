@@ -1,0 +1,3 @@
+# Evolving a validator is a new changeset with collMod, never an edit of an applied
+# ddl-collections-* changeset (Liquibase keeps a checksum of each one).
+databaseChangeLog: []
