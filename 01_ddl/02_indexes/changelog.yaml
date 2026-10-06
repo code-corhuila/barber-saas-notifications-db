@@ -1,0 +1,67 @@
+databaseChangeLog:
+  - changeSet:
+      id: ddl-indexes-001
+      author: carlosleal16
+      labels: "HU-NOTIF-001,ddl,indexes"
+      comment: "The inbox of a user, most recent first, with or without the read filter."
+      changes:
+        - createIndex:
+            collectionName: notification
+            keys: '{ "userId": 1, "read": 1, "createdAt": -1 }'
+            options: '{ "name": "idx_notification_user_read" }'
+      rollback:
+        - dropIndex:
+            collectionName: notification
+            keys: '{ "userId": 1, "read": 1, "createdAt": -1 }'
+
+  - changeSet:
+      id: ddl-indexes-002
+      author: carlosleal16
+      labels: "HU-NOTIF-001,ddl,indexes"
+      comment: "One notification per event (ADR-016): a redelivered event cannot notify twice. Partial: only when sourceEventId is a string."
+      changes:
+        - createIndex:
+            collectionName: notification
+            keys: '{ "sourceEventId": 1 }'
+            options: '{ "name": "uq_notification_source_event", "unique": true, "partialFilterExpression": { "sourceEventId": { "$type": "string" } } }'
+      rollback:
+        - dropIndex:
+            collectionName: notification
+            keys: '{ "sourceEventId": 1 }'
+
+  - changeSet:
+      id: ddl-indexes-003
+      author: carlosleal16
+      labels: "HU-NOTIF-001,ddl,indexes"
+      comment: "A device token is unique: registering it again moves it to the caller. The second index finds the devices of a user for push."
+      changes:
+        - createIndex:
+            collectionName: device_token
+            keys: '{ "token": 1 }'
+            options: '{ "name": "uq_device_token_token", "unique": true }'
+        - createIndex:
+            collectionName: device_token
+            keys: '{ "userId": 1 }'
+            options: '{ "name": "idx_device_token_user" }'
+      rollback:
+        - dropIndex:
+            collectionName: device_token
+            keys: '{ "userId": 1 }'
+        - dropIndex:
+            collectionName: device_token
+            keys: '{ "token": 1 }'
+
+  - changeSet:
+      id: ddl-indexes-004
+      author: carlosleal16
+      labels: "HU-NOTIF-001,ddl,indexes"
+      comment: "pk_idempotency_key of models.md section 10: one record per key and operation."
+      changes:
+        - createIndex:
+            collectionName: idempotency_key
+            keys: '{ "key": 1, "operation": 1 }'
+            options: '{ "name": "uq_idempotency_key", "unique": true }'
+      rollback:
+        - dropIndex:
+            collectionName: idempotency_key
+            keys: '{ "key": 1, "operation": 1 }'
