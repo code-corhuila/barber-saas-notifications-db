@@ -1,0 +1,54 @@
+name: Database rebuild
+
+# The whole changelog must build the notifications database from an EMPTY instance, a second update
+# must apply nothing, every rollback must work and the chain must apply again afterwards. The job
+# first prepares what the single instance provides in every environment (the notifications_app user,
+# Annex J J.7), then checks that the validators and the unique indexes refuse what they must.
+
+on:
+  pull_request:
+    branches: [develop, qa, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start a single-node replica set, as barber-saas-infra-mongo does
+        run: |
+          docker run -d --name mongo -p 27017:27017 mongo:7 --replSet rs0 --bind_ip_all
+          for i in $(seq 1 30); do
+            docker exec mongo mongosh --quiet --eval "try { rs.status().ok } catch (e) { rs.initiate({_id:'rs0',members:[{_id:0,host:'localhost:27017'}]}).ok }" && break
+            sleep 2
+          done
+          until docker exec mongo mongosh --quiet --eval "db.hello().isWritablePrimary" | grep -q true; do sleep 1; done
+          docker exec mongo mongosh --quiet notifications --eval "db.createUser({user:'notifications_app', pwd:'ci-only', roles:[]})"
+      - name: Build the Liquibase image with MongoDB support
+        run: docker build -q -t notifications-db-liquibase -f deploy/liquibase.Dockerfile deploy
+      - name: Apply, apply again, roll everything back, apply again
+        run: |
+          lb() {
+            docker run --rm --network host -v "$PWD:/workspace:ro" notifications-db-liquibase \
+              --search-path=/workspace --changelog-file=changelog/changelog-master.yaml \
+              --url="mongodb://localhost:27017/notifications?directConnection=true" \
+              --database-changelog-table-name=databasechangelog_notifications \
+              --database-changelog-lock-table-name=databasechangeloglock_notifications "$@"
+          }
+          lb update
+          lb update | tee second.txt
+          grep -q "Run:  *0" second.txt || { echo "second update applied changes: not incremental"; exit 1; }
+          lb rollback-count 999
+          lb update
+      - name: The structure refuses what it must
+        # As a file, not through stdin: an uncaught error then fails the step.
+        run: |
+          docker cp tests/structure.js mongo:/structure.js
+          docker exec mongo mongosh --quiet notifications /structure.js
