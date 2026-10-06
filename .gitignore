@@ -1,0 +1,5 @@
+.env
+liquibase-output.txt
+second.txt
+*.log
+*.pem
