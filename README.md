@@ -28,8 +28,8 @@ Full policy: `00-governance/branching-policy.md` in `barber-saas-docs`.
 
 ## BarberSaaS — what this repository is
 
-The `notifications` database in MongoDB (ADR-011): the collections `notification`, `device_token`
-and `idempotency_key`, versioned with Liquibase and its MongoDB extension (ADR-007), following the
+The `notifications` database in MongoDB (ADR-011): the collections `notification`, `device_token`,
+`idempotency_key` and `processed_event`, versioned with Liquibase and its MongoDB extension (ADR-007), following the
 `db-mongo` template with the Annex J corrections: it has **no database instance of its own**. Its
 runner applies the changesets to the single MongoDB instance of `barber-saas-infra-mongo`, with its
 own changelog collections (`databasechangelog_notifications`). Model: `06-data/models.md` §7 and
@@ -51,6 +51,7 @@ Every changeset declares its rollback inline (`dropCollection`, `dropIndex`, `dr
 | Rule | How |
 |---|---|
 | A redelivered event never notifies twice (ADR-016) | `uq_notification_source_event`, unique and partial on `sourceEventId` |
+| A redelivered password reset never e-mails twice (`DEC-NOTIF-01`) | `processed_event`: the event id is its `_id`; it keeps only the id, type and time, never the code |
 | A device token belongs to one user | `uq_device_token_token`, unique on `token` |
 | One record per Idempotency-Key and operation (norm 5.3.8) | `uq_idempotency_key` on `{key, operation}` |
 | Only the fields of the model, with their limits | `$jsonSchema` with `additionalProperties: false`, `validationLevel: strict`, `validationAction: error` |
