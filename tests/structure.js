@@ -56,6 +56,11 @@ accepts("the same key for another operation", () => db.idempotency_key.insertOne
 refuses("the same key and operation twice", () => db.idempotency_key.insertOne(key("key-00000001", "POST /api/v1/device-tokens")));
 refuses("a key shorter than 8 characters", () => db.idempotency_key.insertOne(key("short", "POST /api/v1/device-tokens")));
 
+const processed = (id, extra) => Object.assign({ _id: id, eventType: "PasswordResetRequested", processedAt: now }, extra || {});
+accepts("a processed event", () => db.processed_event.insertOne(processed("e-10")));
+refuses("the same event processed twice", () => db.processed_event.insertOne(processed("e-10")));
+refuses("a processed event carrying its payload", () => db.processed_event.insertOne(processed("e-11", { code: "123456" })));
+
 const roles = db.getUser("notifications_app").roles.map((r) => r.role);
 if (!roles.includes("notifications_writer")) throw new Error("notifications_app lacks notifications_writer");
 print("ok   notifications_app holds notifications_writer");
@@ -63,3 +68,4 @@ print("ok   notifications_app holds notifications_writer");
 db.notification.deleteMany({});
 db.device_token.deleteMany({});
 db.idempotency_key.deleteMany({});
+db.processed_event.deleteMany({});
