@@ -7,7 +7,7 @@ name: Database rebuild
 
 on:
   pull_request:
-    branches: [develop, qa, main]
+    branches: [develop, qa]
 
 permissions:
   contents: read
@@ -19,7 +19,7 @@ concurrency:
 jobs:
   rebuild:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Start a single-node replica set, as barber-saas-infra-mongo does
