@@ -60,6 +60,21 @@ const processed = (id, extra) => Object.assign({ _id: id, eventType: "PasswordRe
 accepts("a processed event", () => db.processed_event.insertOne(processed("e-10")));
 refuses("the same event processed twice", () => db.processed_event.insertOne(processed("e-10")));
 refuses("a processed event carrying its payload", () => db.processed_event.insertOne(processed("e-11", { code: "123456" })));
+refuses("a processed event of an inbox type", () => db.processed_event.insertOne(processed("e-12", { eventType: "AppointmentConfirmed" })));
+refuses("a processed event without eventType", () => {
+  const p = processed("e-13");
+  delete p.eventType;
+  db.processed_event.insertOne(p);
+});
+refuses("a processed event without processedAt", () => {
+  const p = processed("e-14");
+  delete p.processedAt;
+  db.processed_event.insertOne(p);
+});
+refuses("a processedAt that is not a date", () => db.processed_event.insertOne(processed("e-15", { processedAt: "2026-10-08" })));
+const ttl = db.processed_event.getIndexes().find((i) => i.name === "ttl_processed_event_processed_at");
+if (!ttl || ttl.expireAfterSeconds !== 2592000) throw new Error("processed_event has no 30-day TTL index");
+print("ok   processed_event expires after 30 days");
 
 const roles = db.getUser("notifications_app").roles.map((r) => r.role);
 if (!roles.includes("notifications_writer")) throw new Error("notifications_app lacks notifications_writer");
