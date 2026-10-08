@@ -51,7 +51,8 @@ Every changeset declares its rollback inline (`dropCollection`, `dropIndex`, `dr
 | Rule | How |
 |---|---|
 | A redelivered event never notifies twice (ADR-016) | `uq_notification_source_event`, unique and partial on `sourceEventId` |
-| A redelivered password reset never e-mails twice (`DEC-NOTIF-01`) | `processed_event`: the event id is its `_id`; it keeps only the id, type and time, never the code |
+| A redelivered password reset never e-mails twice (`DEC-NOTIF-01`) | `processed_event`: the event id is its `_id`; it keeps only the id, the type (`PasswordResetRequested` only) and the time, never the code |
+| `processed_event` does not grow forever | `ttl_processed_event_processed_at`: MongoDB removes a row 30 days after `processedAt`, far beyond the worker's redelivery window |
 | A device token belongs to one user | `uq_device_token_token`, unique on `token` |
 | One record per Idempotency-Key and operation (norm 5.3.8) | `uq_idempotency_key` on `{key, operation}` |
 | Only the fields of the model, with their limits | `$jsonSchema` with `additionalProperties: false`, `validationLevel: strict`, `validationAction: error` |
