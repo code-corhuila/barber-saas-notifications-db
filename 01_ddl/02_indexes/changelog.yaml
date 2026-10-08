@@ -31,6 +31,21 @@ databaseChangeLog:
 
   - changeSet:
       id: ddl-indexes-003
+      author: Pipecerquera
+      labels: "DEC-NOTIF-01,ddl,indexes"
+      comment: "processed_event keeps an event 30 days, far beyond the worker's redelivery window (8 attempts, at most 5 minutes apart; ADR-016), then MongoDB removes it: the collection does not grow forever."
+      changes:
+        - createIndex:
+            collectionName: processed_event
+            keys: '{ "processedAt": 1 }'
+            options: '{ "name": "ttl_processed_event_processed_at", "expireAfterSeconds": 2592000 }'
+      rollback:
+        - dropIndex:
+            collectionName: processed_event
+            keys: '{ "processedAt": 1 }'
+
+  - changeSet:
+      id: ddl-indexes-003
       author: carlosleal16
       labels: "HU-NOTIF-001,ddl,indexes"
       comment: "A device token is unique: registering it again moves it to the caller. The second index finds the devices of a user for push."
