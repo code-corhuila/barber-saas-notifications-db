@@ -104,7 +104,7 @@ databaseChangeLog:
       id: ddl-collections-004
       author: Pipecerquera
       labels: "DEC-NOTIF-01,ddl,collections"
-      comment: "Events handled without an in-app notification (PasswordResetRequested, DEC-NOTIF-01): the event id alone, so a redelivery does not e-mail twice. Same fields as processed_event in the PostgreSQL domains (06-data/models.md section 10); never the payload."
+      comment: "Events handled without an inbox notification (DEC-NOTIF-01): the event id alone, so a redelivery does not e-mail twice. Same fields as processed_event in the PostgreSQL domains (06-data/models.md section 10); never the payload. Only the types this service handles this way are accepted."
       changes:
         - createCollection:
             collectionName: processed_event
@@ -115,8 +115,8 @@ databaseChangeLog:
                   "required": ["_id", "eventType", "processedAt"],
                   "additionalProperties": false,
                   "properties": {
-                    "_id":         { "bsonType": "string", "description": "EventEnvelope.id (the producer's outbox_event.id); unique by being the _id" },
-                    "eventType":   { "bsonType": "string", "minLength": 1, "maxLength": 100 },
+                    "_id":         { "bsonType": "string", "description": "EventEnvelope.id; unique by being the _id" },
+                    "eventType":   { "enum": ["PasswordResetRequested"], "description": "inbox events dedupe on notification.sourceEventId instead" },
                     "processedAt": { "bsonType": "date" }
                   } } },
                 "validationLevel": "strict",
