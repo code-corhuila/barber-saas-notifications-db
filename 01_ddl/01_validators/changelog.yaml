@@ -1,3 +1,38 @@
 # Evolving a validator is a new changeset with collMod, never an edit of an applied
 # ddl-collections-* changeset (Liquibase keeps a checksum of each one).
-databaseChangeLog: []
+databaseChangeLog:
+  - changeSet:
+      id: ddl-validators-001
+      author: carlosleal16
+      labels: "HU-AUTH-004,ddl,validators"
+      comment: "processed_event also accepts EmailVerificationRequested, e-mailed like the reset code (DEC-NOTIF-02): the same schema as ddl-collections-004 with only the eventType enum widened."
+      changes:
+        - runCommand:
+            command: >
+              { "collMod": "processed_event",
+                "validator": { "$jsonSchema": {
+                  "bsonType": "object",
+                  "required": ["_id", "eventType", "processedAt"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "_id":         { "bsonType": "string", "description": "EventEnvelope.id; unique by being the _id" },
+                    "eventType":   { "enum": ["PasswordResetRequested", "EmailVerificationRequested"], "description": "inbox events dedupe on notification.sourceEventId instead" },
+                    "processedAt": { "bsonType": "date" }
+                  } } },
+                "validationLevel": "strict",
+                "validationAction": "error" }
+      rollback:
+        - runCommand:
+            command: >
+              { "collMod": "processed_event",
+                "validator": { "$jsonSchema": {
+                  "bsonType": "object",
+                  "required": ["_id", "eventType", "processedAt"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "_id":         { "bsonType": "string", "description": "EventEnvelope.id; unique by being the _id" },
+                    "eventType":   { "enum": ["PasswordResetRequested"], "description": "inbox events dedupe on notification.sourceEventId instead" },
+                    "processedAt": { "bsonType": "date" }
+                  } } },
+                "validationLevel": "strict",
+                "validationAction": "error" }
