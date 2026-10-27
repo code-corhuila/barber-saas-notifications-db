@@ -61,6 +61,8 @@ accepts("a processed event", () => db.processed_event.insertOne(processed("e-10"
 refuses("the same event processed twice", () => db.processed_event.insertOne(processed("e-10")));
 refuses("a processed event carrying its payload", () => db.processed_event.insertOne(processed("e-11", { code: "123456" })));
 refuses("a processed event of an inbox type", () => db.processed_event.insertOne(processed("e-12", { eventType: "AppointmentConfirmed" })));
+accepts("a processed e-mail verification", () => db.processed_event.insertOne(processed("e-16", { eventType: "EmailVerificationRequested" })));
+refuses("a processed event of a notice type", () => db.processed_event.insertOne(processed("e-17", { eventType: "PlanExpiringSoon" })));
 refuses("a processed event without eventType", () => {
   const p = processed("e-13");
   delete p.eventType;
